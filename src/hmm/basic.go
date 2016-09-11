@@ -45,6 +45,32 @@ func (h *BasicHMM) Pi (i int) float64 {
    return h.pi[i]
 }
 
+func (h *BasicHMM) FillA (v [][]float64) {
+   n := h.N()
+   for i := 0; i < n; i++ {
+      for j := 0; j < n; j++ {
+         h.SetA(i, j, v[i][j])
+      }
+   }
+}
+
+func (h *BasicHMM) FillB (v [][]float64) {
+   n := h.N()
+   m := h.M()
+   for i := 0; i < n; i++ {
+      for j := 0; j < m; j++ {
+         h.SetB(i, j, v[i][j])
+      }
+   }
+}
+
+func (h *BasicHMM) FillPi (v []float64) {
+   n := h.N()
+   for i := 0; i < n; i++ {
+      h.SetPi(i, v[i])
+   }
+}
+
 func (h *BasicHMM) SetA (i, j int, v float64) bool {
    h.a[i][j] = v
    return true
