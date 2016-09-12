@@ -1,6 +1,6 @@
 package hmm
 
-func BaumWelchLeaner (need_init bool, hmm HiddenMarkovModel, observation []int, state []int, times int) {
+func BaumWelchLeaner (need_init bool, hmm HiddenMarkovModel, observation []int, times int) {
    obn  := len(observation)
    stn  := hmm.N()
    m    := hmm.M()

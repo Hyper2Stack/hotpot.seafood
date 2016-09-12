@@ -97,3 +97,43 @@ func (h *BasicHMM) SetPi (i int, v float64) bool {
    h.pi[i] = v
    return true
 }
+
+func (h *BasicHMM) Scale () HiddenMarkovModel {
+   n      := h.N()
+   m      := h.M()
+   newhmm := MakeBasicHMM(n, m)
+   newhmm.FillA(*h.GetA())
+   newhmm.FillB(*h.GetB())
+   newhmm.FillPi(*h.GetPi())
+
+   var s1, s2, s3 float64
+   s3 = 0
+   for i := 0; i < n; i++ {
+      s1 = 0
+      s2 = 0
+      s3 += newhmm.Pi(i)
+      for j := 0; j < n; j++ {
+         s1 += newhmm.A(i, j)
+      }
+      for j := 0; j < m; j++ {
+         s2 += newhmm.A(i, j)
+      }
+
+      if s1 == 0.0 {
+         s1 = 1.0
+      }
+      if s2 == 0.0 {
+         s2 = 1.0
+      }
+      for j := 0; j < n; j++ {
+         newhmm.SetA(i, j, newhmm.A(i, j) / s1)
+      }
+      for j := 0; j < m; j++ {
+         newhmm.SetB(i, j, newhmm.B(i, j) / s2)
+      }
+   }
+   for i := 0; i < n; i++ {
+      newhmm.SetPi(i, newhmm.Pi(i) / s3)
+   }
+   return newhmm
+}

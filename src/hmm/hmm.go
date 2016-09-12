@@ -21,6 +21,8 @@ type HiddenMarkovModel interface {
    FillA (v [][]float64)
    FillB (v [][]float64)
    FillPi(v []float64)
+
+   Scale ()                    HiddenMarkovModel
 }
 
 func ViterbiCalculator (hmm HiddenMarkovModel, observation []int) (lnP float64, state []int) {

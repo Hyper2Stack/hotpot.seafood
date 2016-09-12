@@ -57,3 +57,46 @@ func TestHmmViterbi (t *testing.T) {
       t.Fail()
    }
 }
+
+func TestBasicHMMExpandBasicHMM (t *testing.T) {
+   m := MakeBasicHMM(3, 3)
+   m.SetA(0, 0, 0.4)
+   m.SetB(0, 1, 0.3)
+   m.SetPi(2, 0.5)
+
+   m = ExpandBasicHMM(m, 5, 6)
+   if m.N() != 5 || m.M() != 6 {
+      t.Fail()
+   }
+   if m.A(0, 0) != 0.4 || m.B(0, 1) != 0.3 || m.Pi(2) != 0.5 {
+      t.Fail()
+   }
+
+   m = ExpandBasicHMM(m, 4, 4)
+   if m.N() != 5 || m.M() != 6 {
+      t.Fail()
+   }
+   if m.A(0, 0) != 0.4 || m.B(0, 1) != 0.3 || m.Pi(2) != 0.5 {
+      t.Fail()
+   }
+}
+
+func TestBasicLearner (t *testing.T) {
+   m := MakeBasicHMM(0, 0)
+   m = BasicLearner(m, []int{0, 1, 1}, []int{0, 1, 2}, 0.0)
+   if m.N() != 3 || m.M() != 2 {
+      t.Fail()
+   }
+
+   m = BasicLearner(m, []int{0, 0, 1, 1, 0, 0, 1, 0}, []int{0, 0, 1, 2, 2, 0, 1, 0}, 1.0)
+   fmt.Println(m)
+   if m.A(0, 0) != 1 || m.A(0, 1) != 2 || m.A(0, 2) != 0 ||
+      m.A(1, 0) != 1 || m.A(1, 1) != 0 || m.A(1, 2) != 1 ||
+      m.A(2, 0) != 1 || m.A(2, 1) != 0 || m.A(2, 2) != 1 ||
+      m.B(0, 0) != 4 || m.B(0, 1) != 0 ||
+      m.B(1, 0) != 0 || m.B(1, 1) != 2 ||
+      m.B(2, 0) != 1 || m.B(2, 1) != 1 ||
+      m.Pi(0) != 1 || m.Pi(1) != 0 || m.Pi(2) != 0 {
+      t.Fail()
+   }
+}
