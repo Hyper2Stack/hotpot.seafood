@@ -116,7 +116,7 @@ func (h *BasicHMM) Scale () HiddenMarkovModel {
          s1 += newhmm.A(i, j)
       }
       for j := 0; j < m; j++ {
-         s2 += newhmm.A(i, j)
+         s2 += newhmm.B(i, j)
       }
 
       if s1 == 0.0 {
