@@ -1,5 +1,9 @@
 package hmm
 
+import (
+   "encoding/json"
+)
+
 type BasicHMM struct {
    HiddenMarkovModel
    n  int
@@ -23,6 +27,45 @@ func MakeBasicHMM (n, m int) *BasicHMM {
       p.b[i] = make([]float64, m)
    }
    return p
+}
+
+func ParseBasicHMM (raw string) *BasicHMM {
+   var tmp struct {
+      N  int
+      M  int
+      A  [][]float64
+      B  [][]float64
+      Pi []float64
+   }
+   err := json.Unmarshal([]byte(raw), &tmp)
+   if err != nil {
+      return nil
+   }
+   hmm := MakeBasicHMM(tmp.N, tmp.M)
+   hmm.FillA(tmp.A)
+   hmm.FillB(tmp.B)
+   hmm.FillPi(tmp.Pi)
+   return hmm
+}
+
+func StringifyBasicHMM (hmm *BasicHMM) string {
+   var tmp struct {
+      N  int
+      M  int
+      A  [][]float64
+      B  [][]float64
+      Pi []float64
+   }
+   tmp.N = hmm.N()
+   tmp.M = hmm.M()
+   tmp.A = *hmm.GetA()
+   tmp.B = *hmm.GetB()
+   tmp.Pi = *hmm.GetPi()
+   b, err := json.Marshal(&tmp)
+   if err != nil {
+      return ""
+   }
+   return string(b)
 }
 
 func (h *BasicHMM) N () int {

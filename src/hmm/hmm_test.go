@@ -101,7 +101,7 @@ func TestBasicLearner (t *testing.T) {
    }
 }
 
-func TestBasicScale (t *testing.T) {
+func TestBasicHMMScale (t *testing.T) {
    m := MakeBasicHMM(3, 2)
    m.FillA([][]float64{
       {1.0, 2.0, 0.0},
@@ -123,6 +123,35 @@ func TestBasicScale (t *testing.T) {
       m.B(1, 0) != 0.0 || m.B(1, 1) != 1.0 ||
       m.B(2, 0) != 0.5 || m.B(2, 1) != 0.5 ||
       m.Pi(0) != 1.0 || m.Pi(1) != m.Pi(2) || m.Pi(2) != 0.0 {
+      t.Fail()
+   }
+}
+
+func TestBasicHMMParse (t *testing.T) {
+   m := ParseBasicHMM(`{"N":2,"M":1,"A":[[1,2],[3,4]],"B":[[5],[6]],"Pi":[7,8]}`)
+   fmt.Println(m)
+   if m.N() != 2 || m.M() != 1 ||
+      m.A(0, 0) != 1 || m.A(0, 1) != 2 ||
+      m.A(1, 0) != 3 || m.A(1, 1) != 4 ||
+      m.B(0, 0) != 5 || m.B(1, 0) != 6 ||
+      m.Pi(0) != 7 || m.Pi(1) != 8 {
+      t.Fail()
+   }
+}
+
+func TestBasicHMMStringify (t *testing.T) {
+   m := MakeBasicHMM(2, 1)
+   m.SetA(0, 0, 1.0)
+   m.SetA(0, 1, 2.0)
+   m.SetA(1, 0, 3.0)
+   m.SetA(1, 1, 4.0)
+   m.SetB(0, 0, 5.0)
+   m.SetB(1, 0, 6.0)
+   m.SetPi(0, 7.0)
+   m.SetPi(1, 8.0)
+   raw := StringifyBasicHMM(m)
+   fmt.Println(raw)
+   if raw != `{"N":2,"M":1,"A":[[1,2],[3,4]],"B":[[5],[6]],"Pi":[7,8]}` {
       t.Fail()
    }
 }
