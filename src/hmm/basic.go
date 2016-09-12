@@ -45,6 +45,18 @@ func (h *BasicHMM) Pi (i int) float64 {
    return h.pi[i]
 }
 
+func (h *BasicHMM) GetA () *[][]float64 {
+   return &h.a
+}
+
+func (h *BasicHMM) GetB () *[][]float64 {
+   return &h.b
+}
+
+func (h *BasicHMM) GetPi () *[]float64 {
+   return &h.pi
+}
+
 func (h *BasicHMM) FillA (v [][]float64) {
    n := h.N()
    for i := 0; i < n; i++ {

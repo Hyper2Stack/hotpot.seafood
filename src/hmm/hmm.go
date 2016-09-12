@@ -11,9 +11,16 @@ type HiddenMarkovModel interface {
    B     (i, j int)            float64 // i=[0, N], j=[0, M]
    Pi    (i int)               float64 // i=[0, N]
 
+   GetA  ()                    *[][]float64
+   GetB  ()                    *[][]float64
+   GetPi ()                    *[]float64
+
    SetA  (i, j int, v float64) bool
    SetB  (i, j int, v float64) bool
    SetPi (i int, v float64)    bool
+   FillA (v [][]float64)
+   FillB (v [][]float64)
+   FillPi(v []float64)
 }
 
 func ViterbiCalculator (hmm HiddenMarkovModel, observation []int) (lnP float64, state []int) {
