@@ -4,7 +4,14 @@ import "math"
 
 // ref: https://github.com/andersbll/nnet
 
+type CacheLayer interface {
+   LastInput () *SimpleMatrix
+   LastOutput () *SimpleMatrix
+   LastGrad () *SimpleMatrix
+}
+
 type Layer interface {
+   CacheLayer
    // Setup layer with parameters that are unknown at 
    Setup ()
    // Output matrix shape M * N
@@ -24,22 +31,35 @@ type LossMixin interface {
    //InputGrad (output, output_pred *SimpleMatrix) *SimpleMatrix
 }
 
+
 type LayerLinear struct {
    Layer
    W, B *SimpleMatrix
    DeltaW, DeltaB *SimpleMatrix
-   Last *SimpleMatrix
    WeightScale, WeightDecay float64
+   lastInput, lastOutput, lastGrad *SimpleMatrix
 }
 
 func NewLayerLinear (input_m, input_n, output_n int, weight_scale, weight_decay float64) *LayerLinear {
    // weight_decay default: 0.0
    c := new(LayerLinear)
-   c.WeightScale = weight_scale
-   c.WeightDecay = weight_decay
    c.W = NewSimpleMatrix(input_n, output_n).FillGuassian(0, weight_scale)
    c.B = NewSimpleMatrix(input_m, output_n)
+   c.WeightScale = weight_scale
+   c.WeightDecay = weight_decay
    return c
+}
+
+func (c *LayerLinear) LastInput () *SimpleMatrix {
+   return c.lastInput
+}
+
+func (c *LayerLinear) LastOutput () *SimpleMatrix {
+   return c.lastOutput
+}
+
+func (c *LayerLinear) LastGrad () *SimpleMatrix {
+   return c.lastGrad
 }
 
 func (c *LayerLinear) Setup () {
@@ -50,31 +70,33 @@ func (c *LayerLinear) Dim () (int, int) {
 }
 
 func (c *LayerLinear) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   c.Last = input
-   return input.Dot(c.W).Add(c.B, 1, 1)
+   c.lastInput = input
+   c.lastOutput = input.Dot(c.W).Add(c.B, 1, 1)
+   return c.lastOutput.Clone()
 }
 
 func (c *LayerLinear) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
-   c.DeltaW = c.Last.T().Dot(output_grad).Scale(1.0 / float64(output_grad.M)).Add(c.W.Scale(c.WeightDecay), 1, -1)
-   c.DeltaB = output_grad.Clone()
-   return output_grad.Dot(c.W.T())
+   c.DeltaW = c.lastInput.T().Dot(output_grad).Add(c.W.Scale(c.WeightDecay), 1, 1)
+   c.DeltaB = output_grad.Add(c.lastInput.Dot(c.DeltaW), 1, 1)
+   c.lastGrad = output_grad.Dot(c.W.T())
+   return c.lastGrad.Clone()
 }
 
 func (c *LayerLinear) ParamsUpdate (learning_rate float64) {
-   c.W = c.W.Add(c.DeltaW.Scale(learning_rate), 1, -1)
-   c.B = c.B.Add(c.DeltaB.Scale(learning_rate), 1, -1)
+   c.W = c.W.Add(c.DeltaW.Scale(learning_rate), 1, 1)
+   c.B = c.B.Add(c.DeltaW.Scale(learning_rate), 1, 1)
 }
 
 
 type LayerActivation struct {
    Layer
    Fun, FunDerivative func (float64) float64
-   Last *SimpleMatrix
+   lastInput, lastOutput, lastGrad *SimpleMatrix
 }
 
 func NewLayerActivation (input_m, input_n int, fun_type string) *LayerActivation {
    c := new(LayerActivation)
-   c.Last = NewSimpleMatrix(input_m, input_n)
+   c.lastInput = NewSimpleMatrix(input_m, input_n)
    switch fun_type {
    case "tanh":
       c.Fun = Tanh
@@ -89,20 +111,34 @@ func NewLayerActivation (input_m, input_n int, fun_type string) *LayerActivation
    return c
 }
 
+func (c *LayerActivation) LastInput () *SimpleMatrix {
+   return c.lastInput
+}
+
+func (c *LayerActivation) LastOutput () *SimpleMatrix {
+   return c.lastOutput
+}
+
+func (c *LayerActivation) LastGrad () *SimpleMatrix {
+   return c.lastGrad
+}
+
 func (c *LayerActivation) Setup () {
 }
 
 func (c *LayerActivation) Dim () (int, int) {
-   return c.Last.M, c.Last.N
+   return c.lastInput.M, c.lastInput.N
 }
 
 func (c *LayerActivation) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   c.Last = input.Map(c.Fun)
-   return c.Last.Clone()
+   c.lastInput = input
+   c.lastOutput = input.Map(c.Fun)
+   return c.lastOutput.Clone()
 }
 
 func (c *LayerActivation) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
-   return output_grad.EltMul(c.Last.Map(c.FunDerivative))
+   c.lastGrad = output_grad.EltMul(c.lastOutput.Map(c.FunDerivative))
+   return c.lastGrad.Clone()
 }
 
 func (c *LayerActivation) ParamsUpdate (learning_rate float64) {
@@ -113,6 +149,7 @@ type LayerLogRegression struct {
    Layer
    LossMixin
    M, N int
+   lastInput, lastOutput *SimpleMatrix
 }
 
 func NewLayerLogRegression (input_m, input_n int) *LayerLogRegression {
@@ -120,6 +157,18 @@ func NewLayerLogRegression (input_m, input_n int) *LayerLogRegression {
    c.M = input_m
    c.N = input_n
    return c
+}
+
+func (c *LayerLogRegression) LastInput () *SimpleMatrix {
+   return c.lastInput
+}
+
+func (c *LayerLogRegression) LastOutput () *SimpleMatrix {
+   return c.lastOutput
+}
+
+func (c *LayerLogRegression) LastGrad () *SimpleMatrix {
+   return nil
 }
 
 func (c *LayerLogRegression) Setup () {
@@ -130,12 +179,14 @@ func (c *LayerLogRegression) Dim () (int, int) {
 }
 
 func (c *LayerLogRegression) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   return input.Softmax()
+   c.lastInput = input
+   c.lastOutput = input.Softmax()
+   return c.lastOutput.Clone()
 }
 
 func (c *LayerLogRegression) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    // LogRegression does not support back-propagation of gradients.
-   // It should occur only as the last layer of a NeuralNetwork.
+   // It should occur only as the last layer of a NeuralChain.
    return nil
 }
 
@@ -165,11 +216,24 @@ func (c *LayerLogRegression) ParamsUpdate (learning_rate float64) {
 /* Layer Template
 type LayerX struct {
    Layer
+   lastInput, lastOutput, lastGrad *SimpleMatrix
 }
 
 func NewLayerX (input_m, input_n, output_n int) *LayerX {
    c := new(LayerX)
    return c
+}
+
+func (c *LayerX) LastInput () *SimpleMatrix {
+   return c.lastInput
+}
+
+func (c *LayerX) LastOutput () *SimpleMatrix {
+   return c.lastOutput
+}
+
+func (c *LayerX) LastGrad () *SimpleMatrix {
+   return c.lastGrad
 }
 
 func (c *LayerX) Setup () {
@@ -179,38 +243,43 @@ func (c *LayerX) Dim () (int, int) {
 }
 
 func (c *LayerX) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
+   c.lastInput = input
+   c.lastOutput = 
+   return c.lastOutput.Clone()
 }
 
 func (c *LayerX) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
+   c.lastGrad =
+   return c.lastGrad.Clone()
 }
 
 func (c *LayerX) ParamsUpdate (learning_rate float64) {
 }
 */
 
-type NeuralNetwork struct {
+type NeuralChain struct {
    Layers []Layer
 }
 
-func NewNeuralNetwork () *NeuralNetwork {
-   n := new(NeuralNetwork)
+func NewNeuralChain () *NeuralChain {
+   n := new(NeuralChain)
    n.Layers = make([]Layer, 0)
    return n
 }
 
-func (n *NeuralNetwork) AddLayer (layer Layer) *NeuralNetwork {
+func (n *NeuralChain) AddLayer (layer Layer) *NeuralChain {
    n.Layers = append(n.Layers, layer)
    return n
 }
 
-func (n *NeuralNetwork) Fit (input, expect *SimpleMatrix, learning_rate float64) *NeuralNetwork {
+func (n *NeuralChain) Fit (input, expect *SimpleMatrix, learning_rate float64) *NeuralChain {
    m := len(n.Layers)
    X_next := input
    for i := 0; i < m; i++ {
       X_next = n.Layers[i].ForwardProp(X_next)
    }
    Y_pred := X_next
-   grad_next := Y_pred.Add(expect, 1, -1)
+   grad_next := expect.Add(Y_pred, 1, -1)
    for i := m - 1; i >= 0; i-- {
       grad_next = n.Layers[i].BackwardProp(grad_next)
       n.Layers[i].ParamsUpdate(learning_rate)
@@ -218,7 +287,7 @@ func (n *NeuralNetwork) Fit (input, expect *SimpleMatrix, learning_rate float64)
    return n
 }
 
-func (n *NeuralNetwork) Predict (input *SimpleMatrix) *SimpleMatrix {
+func (n *NeuralChain) Predict (input *SimpleMatrix) *SimpleMatrix {
    X_next := input
    for _, layer := range n.Layers {
       X_next = layer.ForwardProp(X_next)
@@ -226,6 +295,6 @@ func (n *NeuralNetwork) Predict (input *SimpleMatrix) *SimpleMatrix {
    return X_next
 }
 
-func (n *NeuralNetwork) Error (predict, expect *SimpleMatrix) float64 {
+func (n *NeuralChain) Error (predict, expect *SimpleMatrix) float64 {
    return predict.Add(expect, 1, -1).Map(math.Abs).EltSum() / float64(predict.M * predict.N)
 }

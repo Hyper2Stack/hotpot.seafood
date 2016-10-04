@@ -50,7 +50,7 @@ func (X *SimpleMatrix) FillGuassian (mu, std float64) *SimpleMatrix {
    return X
 }
 
-func (X *SimpleMatrix) FillWindow (x, y int, Y *SimpleMatrix) *SimpleMatrix {
+func (X *SimpleMatrix) FillWindow (y, x int, Y *SimpleMatrix) *SimpleMatrix {
    m := y + Y.M
    if m > X.M {
       m = X.M
@@ -175,7 +175,7 @@ func (X *SimpleMatrix) Col (x int) *SimpleMatrix {
    return R
 }
 
-func (X *SimpleMatrix) Window (x, y, w, h int) *SimpleMatrix {
+func (X *SimpleMatrix) Window (y, x, h, w int) *SimpleMatrix {
    R := NewSimpleMatrix(h, w)
    m := y + h
    if m > X.M {

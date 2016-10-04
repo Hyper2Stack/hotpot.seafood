@@ -15,11 +15,12 @@ func __round__ (x float64) float64 {
 
 func main () {
    nn.RandomSeed()
-   n := nn.NewNeuralNetwork()
-   hidden := 12
-   n.AddLayer(nn.NewLayerLinear(1, 2, hidden, 1, 0))
+   n := nn.NewNeuralChain()
+   hidden := 16
+   n.AddLayer(nn.NewLayerLinear(1, 2, hidden, 0.5, 0))
    n.AddLayer(nn.NewLayerActivation(1, hidden, "sigmoid"))
-   n.AddLayer(nn.NewLayerLinear(1, hidden, 1, 1, 0))
+   n.AddLayer(nn.NewLayerLinear(1, hidden, 1, 0.5, 0))
+   n.AddLayer(nn.NewLayerActivation(1, hidden, "sigmoid"))
 
    /*
       [0 0  0]
@@ -44,14 +45,24 @@ func main () {
    error := 0
    for i := 1; i <= 20000; i++ {
       k := rand.Intn(4)
-      n.Fit(data.Window(0, k, 2, 1), data.Window(2, k, 1, 1), 0.1)
-      if data.Row(k).Data[0][2] != __round__(n.Predict(data.Window(0, k, 2, 1)).Data[0][0]) {
+      n.Fit(data.Window(k, 0, 1, 2), data.Window(k, 2, 1, 1), 0.2)
+      if data.Row(k).Data[0][2] != __round__(n.Predict(data.Window(k, 0, 1, 2)).Data[0][0]) {
          error ++
       }
       if i % 1000 == 0 {
-         fmt.Printf("error:%.2f%%\n", float64(error)/1000.0 * 100.0)
+         fmt.Printf("error: %.2f%%\n", float64(error)/1000.0 * 100.0)
          error = 0
-         fmt.Println(data.Row(k).Data[0][0], "xor", data.Row(k).Data[0][1], "=", data.Row(k).Data[0][2], "  [A]", n.Predict(data.Window(0, k, 2, 1)).Map(__round__) )
+         fmt.Println(data.Row(k).Data[0][0], "xor", data.Row(k).Data[0][1], "=", data.Row(k).Data[0][2], "  [A]", __round__(n.Predict(data.Window(k, 0, 1, 2)).Data[0][0]) )
       }
    }
+
+
+   error = 0
+   for i := 1; i <= 20000; i++ {
+      k := rand.Intn(4)
+      if data.Row(k).Data[0][2] != __round__(n.Predict(data.Window(k, 0, 1, 2)).Data[0][0]) {
+         error ++
+      }
+   }
+   fmt.Printf("Test Error: %.2f%%\n", float64(error)/20000.0 * 100.0)
 }
