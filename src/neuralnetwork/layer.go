@@ -8,8 +8,6 @@ type CacheLayer interface {
 
 type Layer interface {
    CacheLayer
-   // Setup layer with parameters that are unknown at 
-   Setup ()
    // Output matrix shape M * N
    Dim () (int, int)
    // Calculate layer output for given input (forward propagation).
@@ -31,57 +29,48 @@ type LossMixin interface {
    //InputGrad (output, output_pred *SimpleMatrix) *SimpleMatrix
 }
 
-/* Layer Template
-type LayerX struct {
+type LayerBase struct {
    Layer
    lastInput, lastOutput, lastGrad *SimpleMatrix
 }
 
-func NewLayerX (input_m, input_n, output_n int) *LayerX {
-   c := new(LayerX)
-   return c
-}
-
-func (c *LayerX) LastInput () *SimpleMatrix {
+func (c *LayerBase) LastInput () *SimpleMatrix {
    return c.lastInput
 }
 
-func (c *LayerX) LastOutput () *SimpleMatrix {
+func (c *LayerBase) LastOutput () *SimpleMatrix {
    return c.lastOutput
 }
 
-func (c *LayerX) LastGrad () *SimpleMatrix {
+func (c *LayerBase) LastGrad () *SimpleMatrix {
    return c.lastGrad
 }
 
-func (c *LayerX) Setup () {
+func (c *LayerBase) Dim () (int, int) {
+   return 0, 0
 }
 
-func (c *LayerX) Dim () (int, int) {
-}
-
-func (c *LayerX) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
+func (c *LayerBase) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
    c.lastInput = input.Clone()
-   c.lastOutput = 
-   return c.lastOutput.Clone()
+   c.lastOutput = input.Clone()
+   return input
 }
 
-func (c *LayerX) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
-   c.lastGrad =
-   return c.lastGrad.Clone()
+func (c *LayerBase) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
+   c.lastGrad = output_grad.Clone()
+   return output_grad
 }
 
-func (c *LayerX) DeltaN () int {
+func (c *LayerBase) DeltaN () int {
    return 0
 }
 
-func (c *LayerX) Delta () []*SimpleMatrix {
+func (c *LayerBase) Delta () []*SimpleMatrix {
    return make([]*SimpleMatrix, 0)
 }
 
-func (c *LayerX) CorrectDelta (delta []*SimpleMatrix, offset int) {
+func (c *LayerBase) CorrectDelta (delta []*SimpleMatrix, offset int) {
 }
 
-func (c *LayerX) ParamsUpdate (alpha float64) {
+func (c *LayerBase) ParamsUpdate (alpha float64) {
 }
-*/

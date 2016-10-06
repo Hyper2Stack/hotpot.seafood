@@ -5,10 +5,9 @@ import "math"
 // ref: https://github.com/andersbll/nnet
 
 type LayerLogRegression struct {
-   Layer
+   LayerBase
    LossMixin
    M, N int
-   lastInput, lastOutput *SimpleMatrix
 }
 
 func NewLayerLogRegression (input_m, input_n int) *LayerLogRegression {
@@ -16,18 +15,6 @@ func NewLayerLogRegression (input_m, input_n int) *LayerLogRegression {
    c.M = input_m
    c.N = input_n
    return c
-}
-
-func (c *LayerLogRegression) LastInput () *SimpleMatrix {
-   return c.lastInput
-}
-
-func (c *LayerLogRegression) LastOutput () *SimpleMatrix {
-   return c.lastOutput
-}
-
-func (c *LayerLogRegression) LastGrad () *SimpleMatrix {
-   return nil
 }
 
 func (c *LayerLogRegression) Setup () {
@@ -46,7 +33,7 @@ func (c *LayerLogRegression) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
 func (c *LayerLogRegression) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    // LogRegression does not support back-propagation of gradients.
    // It should occur only as the last layer of a NeuralChain.
-   return nil
+   return output_grad
 }
 
 func __entropy_clip__ (x float64) float64 {
@@ -67,18 +54,4 @@ func (c *LayerLogRegression) Loss (output, output_pred *SimpleMatrix) *SimpleMat
       loss.Data[i][0] /= float64(m)
    }
    return loss
-}
-
-func (c *LayerLogRegression) DeltaN () int {
-   return 0
-}
-
-func (c *LayerLogRegression) Delta () []*SimpleMatrix {
-   return make([]*SimpleMatrix, 0)
-}
-
-func (c *LayerLogRegression) CorrectDelta (delta []*SimpleMatrix, offset int) {
-}
-
-func (c *LayerLogRegression) ParamsUpdate (alpha float64) {
 }

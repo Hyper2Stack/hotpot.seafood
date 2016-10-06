@@ -3,12 +3,11 @@ package neuralnetwork
 // ref: https://github.com/andersbll/nnet
 
 type LayerLinear struct {
-   Layer
+   LayerBase
    W, B *SimpleMatrix
    DeltaWb []*SimpleMatrix // W, b
    WeightScale, WeightDecay float64
    EnableB bool
-   lastInput, lastOutput, lastGrad *SimpleMatrix
 }
 
 func NewLayerLinear (input_m, input_n, output_n int, weight_scale, weight_decay float64, enable_b bool) *LayerLinear {
@@ -22,21 +21,6 @@ func NewLayerLinear (input_m, input_n, output_n int, weight_scale, weight_decay 
    c.WeightScale = weight_scale
    c.WeightDecay = weight_decay
    return c
-}
-
-func (c *LayerLinear) LastInput () *SimpleMatrix {
-   return c.lastInput
-}
-
-func (c *LayerLinear) LastOutput () *SimpleMatrix {
-   return c.lastOutput
-}
-
-func (c *LayerLinear) LastGrad () *SimpleMatrix {
-   return c.lastGrad
-}
-
-func (c *LayerLinear) Setup () {
 }
 
 func (c *LayerLinear) Dim () (int, int) {
@@ -62,10 +46,7 @@ func (c *LayerLinear) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
 }
 
 func (c *LayerLinear) DeltaN () int {
-   if c.EnableB {
-      return 2
-   }
-   return 1
+   return 2
 }
 
 func (c *LayerLinear) Delta () []*SimpleMatrix {
