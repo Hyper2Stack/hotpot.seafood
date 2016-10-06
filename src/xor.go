@@ -20,7 +20,7 @@ func main () {
    n.AddLayer(nn.NewLayerLinear(1, 2, hidden, 0.5, 0, false))
    n.AddLayer(nn.NewLayerActivation(1, hidden, "sigmoid"))
    n.AddLayer(nn.NewLayerLinear(1, hidden, 1, 0.5, 0, false))
-   n.AddLayer(nn.NewLayerActivation(1, hidden, "sigmoid"))
+   n.AddLayer(nn.NewLayerActivation(1, 1, "sigmoid"))
 
    /*
       [0 0  0]
