@@ -17,8 +17,9 @@ type Layer interface {
    // Calculate input gradient.
    BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix
    // Get/Set Learn Delta
+   DeltaN () int
    Delta () []*SimpleMatrix
-   CorrectDelta (delta []*SimpleMatrix)
+   CorrectDelta (delta []*SimpleMatrix, offset int)
    // Update layer parameter gradients as calculated from BackwardProp(). 
    ParamsUpdate (alpha float64)
 }
@@ -70,11 +71,15 @@ func (c *LayerX) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    return c.lastGrad.Clone()
 }
 
+func (c *LayerX) DeltaN () int {
+   return 0
+}
+
 func (c *LayerX) Delta () []*SimpleMatrix {
    return make([]*SimpleMatrix, 0)
 }
 
-func (c *LayerX) CorrectDelta (delta []*SimpleMatrix) {
+func (c *LayerX) CorrectDelta (delta []*SimpleMatrix, offset int) {
 }
 
 func (c *LayerX) ParamsUpdate (alpha float64) {

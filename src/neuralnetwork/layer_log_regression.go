@@ -69,11 +69,15 @@ func (c *LayerLogRegression) Loss (output, output_pred *SimpleMatrix) *SimpleMat
    return loss
 }
 
+func (c *LayerLogRegression) DeltaN () int {
+   return 0
+}
+
 func (c *LayerLogRegression) Delta () []*SimpleMatrix {
    return make([]*SimpleMatrix, 0)
 }
 
-func (c *LayerLogRegression) CorrectDelta (delta []*SimpleMatrix) {
+func (c *LayerLogRegression) CorrectDelta (delta []*SimpleMatrix, offset int) {
 }
 
 func (c *LayerLogRegression) ParamsUpdate (alpha float64) {

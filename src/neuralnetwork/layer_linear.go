@@ -61,14 +61,21 @@ func (c *LayerLinear) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    return c.lastGrad.Clone()
 }
 
+func (c *LayerLinear) DeltaN () int {
+   if c.EnableB {
+      return 2
+   }
+   return 1
+}
+
 func (c *LayerLinear) Delta () []*SimpleMatrix {
    return c.DeltaWb
 }
 
-func (c *LayerLinear) CorrectDelta (delta []*SimpleMatrix) {
-   c.DeltaWb[0] = delta[0]
+func (c *LayerLinear) CorrectDelta (delta []*SimpleMatrix, offset int) {
+   c.DeltaWb[0] = delta[offset]
    if c.EnableB {
-      c.DeltaWb[1] = delta[1]
+      c.DeltaWb[1] = delta[offset + 1]
    }
 }
 

@@ -92,11 +92,34 @@ func (c *NeuralChain) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    return c.lastGrad.Clone()
 }
 
+func (c *NeuralChain) DeltaN () int {
+   n := 0
+   for _, layer := range c.Layers {
+      n += layer.DeltaN()
+   }
+   return n
+}
+
 func (c *NeuralChain) Delta () []*SimpleMatrix {
+   r := make([]*SimpleMatrix, 0)
+   for _, layer := range c.Layers {
+      if layer.DeltaN() == 0 {
+         continue
+      }
+      r = append(r, layer.Delta() ...)
+   }
    return make([]*SimpleMatrix, 0)
 }
 
-func (c *NeuralChain) CorrectDelta (delta []*SimpleMatrix) {
+func (c *NeuralChain) CorrectLayerDelta (delta []*SimpleMatrix, offset, layerIndex int) {
+   c.Layers[layerIndex].CorrectDelta(delta, offset)
+}
+
+func (c *NeuralChain) CorrectDelta (delta []*SimpleMatrix, offset int) {
+   for i, layer := range c.Layers {
+      c.CorrectLayerDelta(delta, offset, i)
+      offset += layer.DeltaN()
+   }
 }
 
 func (c *NeuralChain) ParamsUpdate (alpha float64) {

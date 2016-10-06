@@ -55,11 +55,15 @@ func (c *LayerActivation) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix
    return c.lastGrad.Clone()
 }
 
+func (c *LayerActivation) DeltaN () int {
+   return 0
+}
+
 func (c *LayerActivation) Delta () []*SimpleMatrix {
    return make([]*SimpleMatrix, 0)
 }
 
-func (c *LayerActivation) CorrectDelta (delta []*SimpleMatrix) {
+func (c *LayerActivation) CorrectDelta (delta []*SimpleMatrix, offset int) {
 }
 
 func (c *LayerActivation) ParamsUpdate (alpha float64) {
