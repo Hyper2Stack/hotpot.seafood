@@ -16,6 +16,10 @@ func LikeZero (x float64) bool {
    return math.Abs(x) < epsilon
 }
 
+func LikeInf (x float64) bool {
+   return x >= math.Inf(1) || x <= math.Inf(-1)
+}
+
 func RandomSeed () {
    rand.Seed(time.Now().Unix())
 }

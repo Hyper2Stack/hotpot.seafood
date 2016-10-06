@@ -37,10 +37,11 @@ type LayerLinear struct {
    W, B *SimpleMatrix
    DeltaW, DeltaB *SimpleMatrix
    WeightScale, WeightDecay float64
+   EnableB bool
    lastInput, lastOutput, lastGrad *SimpleMatrix
 }
 
-func NewLayerLinear (input_m, input_n, output_n int, weight_scale, weight_decay float64) *LayerLinear {
+func NewLayerLinear (input_m, input_n, output_n int, weight_scale, weight_decay float64, enable_b bool) *LayerLinear {
    // weight_decay default: 0.0
    c := new(LayerLinear)
    c.W = NewSimpleMatrix(input_n, output_n).FillGuassian(0, weight_scale)
@@ -70,21 +71,28 @@ func (c *LayerLinear) Dim () (int, int) {
 }
 
 func (c *LayerLinear) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   c.lastInput = input
-   c.lastOutput = input.Dot(c.W).Add(c.B, 1, 1)
+   c.lastInput = input.Clone()
+   c.lastOutput = input.Dot(c.W)
+   if c.EnableB {
+      c.lastOutput = c.lastOutput.Add(c.B, 1, 1)
+   }
    return c.lastOutput.Clone()
 }
 
 func (c *LayerLinear) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    c.DeltaW = c.lastInput.T().Dot(output_grad).Add(c.W.Scale(c.WeightDecay), 1, 1)
-   c.DeltaB = output_grad.Add(c.lastInput.Dot(c.DeltaW), 1, 1)
+   if c.EnableB {
+      c.DeltaB = output_grad.Add(c.lastInput.Dot(c.DeltaW), 1, 1)
+   }
    c.lastGrad = output_grad.Dot(c.W.T())
    return c.lastGrad.Clone()
 }
 
 func (c *LayerLinear) ParamsUpdate (learning_rate float64) {
    c.W = c.W.Add(c.DeltaW.Scale(learning_rate), 1, 1)
-   c.B = c.B.Add(c.DeltaW.Scale(learning_rate), 1, 1)
+   if c.EnableB {
+      c.B = c.B.Add(c.DeltaW.Scale(learning_rate), 1, 1)
+   }
 }
 
 
@@ -131,7 +139,7 @@ func (c *LayerActivation) Dim () (int, int) {
 }
 
 func (c *LayerActivation) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   c.lastInput = input
+   c.lastInput = input.Clone()
    c.lastOutput = input.Map(c.Fun)
    return c.lastOutput.Clone()
 }
@@ -179,7 +187,7 @@ func (c *LayerLogRegression) Dim () (int, int) {
 }
 
 func (c *LayerLogRegression) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   c.lastInput = input
+   c.lastInput = input.Clone()
    c.lastOutput = input.Softmax()
    return c.lastOutput.Clone()
 }
@@ -243,7 +251,7 @@ func (c *LayerX) Dim () (int, int) {
 }
 
 func (c *LayerX) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
-   c.lastInput = input
+   c.lastInput = input.Clone()
    c.lastOutput = 
    return c.lastOutput.Clone()
 }
@@ -272,18 +280,8 @@ func (n *NeuralChain) AddLayer (layer Layer) *NeuralChain {
    return n
 }
 
-func (n *NeuralChain) Fit (input, expect *SimpleMatrix, learning_rate float64) *NeuralChain {
-   m := len(n.Layers)
-   X_next := input
-   for i := 0; i < m; i++ {
-      X_next = n.Layers[i].ForwardProp(X_next)
-   }
-   Y_pred := X_next
-   grad_next := expect.Add(Y_pred, 1, -1)
-   for i := m - 1; i >= 0; i-- {
-      grad_next = n.Layers[i].BackwardProp(grad_next)
-      n.Layers[i].ParamsUpdate(learning_rate)
-   }
+func (n *NeuralChain) Fit (input, expect *SimpleMatrix, alpha float64) *NeuralChain {
+   n.Learn(n.Predict(input), expect).Update(alpha)
    return n
 }
 
@@ -293,6 +291,23 @@ func (n *NeuralChain) Predict (input *SimpleMatrix) *SimpleMatrix {
       X_next = layer.ForwardProp(X_next)
    }
    return X_next
+}
+
+func (n *NeuralChain) Learn (predict *SimpleMatrix, expect *SimpleMatrix) *NeuralChain {
+   m := len(n.Layers)
+   grad_next := expect.Add(predict, 1, -1)
+   for i := m - 1; i >= 0; i-- {
+      grad_next = n.Layers[i].BackwardProp(grad_next)
+   }
+   return n
+}
+
+func (n *NeuralChain) Update (alpha float64) *NeuralChain {
+   m := len(n.Layers)
+   for i := m - 1; i >= 0; i-- {
+      n.Layers[i].ParamsUpdate(alpha)
+   }
+   return n
 }
 
 func (n *NeuralChain) Error (predict, expect *SimpleMatrix) float64 {

@@ -32,6 +32,15 @@ func (X *SimpleMatrix) T() *SimpleMatrix {
    return R
 }
 
+func (X *SimpleMatrix) Fill (x float64) *SimpleMatrix {
+   for i := X.M - 1; i >= 0; i-- {
+      for j := X.N - 1; j >= 0; j-- {
+         X.Data[i][j] = x
+      }
+   }
+   return X
+}
+
 func (X *SimpleMatrix) FillRandom (a, b float64) *SimpleMatrix {
    for i := X.M - 1; i >= 0; i-- {
       for j := X.N - 1; j >= 0; j-- {
