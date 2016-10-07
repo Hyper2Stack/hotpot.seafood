@@ -11,8 +11,12 @@ func NewLayerSelfishShadow (shadow Layer) *LayerSelfishShadow {
    return c
 }
 
-func (c *LayerSelfishShadow) Dim () (int, int) {
-   return c.Shadow.Dim()
+func (c *LayerSelfishShadow) OutputDim () (int, int) {
+   return c.Shadow.OutputDim()
+}
+
+func (c *LayerSelfishShadow) InputDim () (int, int) {
+   return c.Shadow.InputDim()
 }
 
 func (c *LayerSelfishShadow) Activate (copy_input, copy_output, copy_grad bool) *LayerSelfishShadow {

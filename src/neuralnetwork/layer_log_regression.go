@@ -20,8 +20,12 @@ func NewLayerLogRegression (input_m, input_n int) *LayerLogRegression {
 func (c *LayerLogRegression) Setup () {
 }
 
-func (c *LayerLogRegression) Dim () (int, int) {
+func (c *LayerLogRegression) OutputDim () (int, int) {
    return c.M, c.N
+}
+
+func (c *LayerLogRegression) InputDim () (int, int) {
+   return c.OutputDim()
 }
 
 func (c *LayerLogRegression) ForwardProp (input *SimpleMatrix) *SimpleMatrix {

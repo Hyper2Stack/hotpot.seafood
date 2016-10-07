@@ -17,15 +17,19 @@ func NewLayerActivation (input_m, input_n int, fun_type string) *LayerActivation
    case "relu":
       c.Fun = Relu
       c.FunDerivative = ReluDerivative
-   default:
+   default: /* "sigmoid" */
       c.Fun = Sigmoid
       c.FunDerivative = SigmoidDerivative
    }
    return c
 }
 
-func (c *LayerActivation) Dim () (int, int) {
+func (c *LayerActivation) OutputDim () (int, int) {
    return c.lastInput.M, c.lastInput.N
+}
+
+func (c *LayerActivation) InputDim () (int, int) {
+   return c.OutputDim()
 }
 
 func (c *LayerActivation) ForwardProp (input *SimpleMatrix) *SimpleMatrix {

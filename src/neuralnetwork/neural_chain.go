@@ -6,6 +6,7 @@ type NeuralChain struct {
    LayerBase
    NeuralNetwork
    Layers []Layer
+   InputM, InputN int
 }
 
 func NewNeuralChain () *NeuralChain {
@@ -53,12 +54,22 @@ func (n *NeuralChain) Error (predict, expect *SimpleMatrix) float64 {
    return expect.Add(predict, 1, -1).Map(math.Abs).EltSum() / float64(predict.M * predict.N)
 }
 
-func (c *NeuralChain) Dim () (int, int) {
+func (c *NeuralChain) OutputDim () (int, int) {
    n := len(c.Layers)
    if n == 0 {
       return 0, 0
    }
-   return c.Layers[n - 1].Dim()
+   return c.Layers[n - 1].OutputDim()
+}
+
+func (c *NeuralChain) DefineInputDim (m, n int) *NeuralChain {
+   c.InputM = m
+   c.InputN = n
+   return c
+}
+
+func (c *NeuralChain) InputDim () (int, int) {
+   return c.InputM, c.InputN
 }
 
 func (c *NeuralChain) ForwardProp (input *SimpleMatrix) *SimpleMatrix {

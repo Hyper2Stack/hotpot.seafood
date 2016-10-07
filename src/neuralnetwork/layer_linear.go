@@ -23,8 +23,12 @@ func NewLayerLinear (input_m, input_n, output_n int, weight_scale, weight_decay 
    return c
 }
 
-func (c *LayerLinear) Dim () (int, int) {
+func (c *LayerLinear) OutputDim () (int, int) {
    return c.B.M, c.B.N
+}
+
+func (c *LayerLinear) InputDim () (int, int) {
+   return c.B.M, c.W.M
 }
 
 func (c *LayerLinear) ForwardProp (input *SimpleMatrix) *SimpleMatrix {

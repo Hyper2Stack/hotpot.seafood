@@ -10,6 +10,7 @@ var (
    epsilon               float64 = 1e-9
    global_guassian_cache float64 = 0.0
    global_guassian_fast  bool    = false
+   last_chaos_random     float64 = 0.0
 )
 
 func LikeZero (x float64) bool {
@@ -26,6 +27,15 @@ func RandomSeed () {
 
 func RandomLinear (a, b float64) float64 {
    return rand.Float64() * (b - a) + a
+}
+
+func RandomChaos () float64 {
+   if LikeZero(last_chaos_random) {
+      last_chaos_random = rand.Float64()
+   } else {
+      last_chaos_random = 4 * last_chaos_random * (1 - last_chaos_random)
+   }
+   return last_chaos_random
 }
 
 func RandomStandardGuassian () float64 {
