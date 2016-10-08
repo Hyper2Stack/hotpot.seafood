@@ -47,9 +47,9 @@ func main () {
    nn.RandomSeed()
    n := nn.NewNeuralRecurrentChain(1, 2)
    hidden := 16
-   n.AddLayer(nn.NewLayerLinear(1, 2, hidden, 0.5, 0, false))
+   n.AddLayer(nn.NewLayerLinear(1, 2, hidden, 0.5, 0, true))
    n.AddRecurrentLayer(nn.NewLayerActivation(1, hidden, "sigmoid"), "basic_recurrence")
-   n.AddLayer(nn.NewLayerLinear(1, hidden, 1, 0.5, 0, false))
+   n.AddLayer(nn.NewLayerLinear(1, hidden, 1, 0.5, 0, true))
    n.AddRecurrentLayer(nn.NewLayerActivation(1, 1, "sigmoid"), "output_record")
 
    error := 0
@@ -72,7 +72,7 @@ func main () {
          expect.Data[0][0] = float64(c[7 - L])
          n.Learn(out.Col(7 - L), expect)
       }
-      n.Update(0.1)
+      n.Update(0.2)
       if c_int != decodeNum(out.Data[0]) {
          error ++
       }

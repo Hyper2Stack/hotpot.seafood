@@ -28,19 +28,13 @@ func main () {
       [1 0  1]
       [1 1  0]
     */
-   data := nn.NewSimpleMatrix(4, 3)
-   data.Data[0][0] = 0.0
-   data.Data[0][1] = 0.0
-   data.Data[0][2] = 0.0
-   data.Data[1][0] = 0.0
-   data.Data[1][1] = 1.0
-   data.Data[1][2] = 1.0
-   data.Data[2][0] = 1.0
-   data.Data[2][1] = 0.0
-   data.Data[2][2] = 1.0
-   data.Data[3][0] = 1.0
-   data.Data[3][1] = 1.0
-   data.Data[3][2] = 0.0
+   data := nn.NewSimpleMatrix(4, 3).FillElt(
+      []float64{
+         0.0, 0.0, 0.0,
+         0.0, 1.0, 1.0,
+         1.0, 0.0, 1.0,
+         1.0, 1.0, 0.0,
+      })
 
    error := 0
    for i := 1; i <= 20000; i++ {

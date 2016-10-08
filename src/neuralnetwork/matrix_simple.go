@@ -195,7 +195,9 @@ func (X *SimpleMatrix) Convolute (Kernel *SimpleMatrix) *SimpleMatrix {
    return R
 }
 
-func (X *SimpleMatrix) Pool (stride_m, stride_n int, f func(float64, float64) float64, init float64) *SimpleMatrix {
+func (X *SimpleMatrix) Pool (
+   pool_m, pool_n, stride_m, stride_n int, f func(float64, float64) float64, init float64,
+) *SimpleMatrix {
    newM := X.M / stride_m
    if X.M % stride_m > 0 {
       newM ++
@@ -205,9 +207,13 @@ func (X *SimpleMatrix) Pool (stride_m, stride_n int, f func(float64, float64) fl
       newN ++
    }
    R := NewSimpleMatrix(newM, newN)
+   m_mid_offset := (pool_m - stride_m) / 2
+   n_mid_offset := (pool_n - stride_n) / 2
    for i := newM - 1; i >= 0; i-- {
       for j := newN - 1; j >= 0; j-- {
-         R.Data[i][j] = X.Window(i * stride_m, j * stride_n, stride_m, stride_n).Reduce(f, init)
+         R.Data[i][j] = X.Window(
+            i * stride_m - m_mid_offset, j * stride_n - n_mid_offset, pool_m, pool_n,
+         ).Reduce(f, init)
       }
    }
    return R
@@ -361,4 +367,76 @@ func (X *SimpleMatrix) Scale (a float64) *SimpleMatrix {
       }
    }
    return R
+}
+
+func (X *SimpleMatrix) SacleWindow (m, n, h, w int, a float64) *SimpleMatrix {
+   endM := m + h
+   if endM > X.M {
+      endM = X.M
+   }
+   if m < 0 {
+      m = 0
+   }
+   endN := n + w
+   if endN > X.N {
+      endN = X.N
+   }
+   if m < 0 {
+      m = 0
+   }
+   for i := endM - 1; i >= m; i-- {
+      for j := endN - 1; j >= n; j-- {
+         X.Data[i][j] *= a
+      }
+   }
+   return X
+}
+
+func (X *SimpleMatrix) MapWindow (m, n, h, w int, f func (float64) float64) *SimpleMatrix {
+   endM := m + h
+   if endM > X.M {
+      endM = X.M
+   }
+   if m < 0 {
+      m = 0
+   }
+   endN := n + w
+   if endN > X.N {
+      endN = X.N
+   }
+   if m < 0 {
+      m = 0
+   }
+   for i := endM - 1; i >= m; i-- {
+      for j := endN - 1; j >= n; j-- {
+         X.Data[i][j] = f(X.Data[i][j])
+      }
+   }
+   return X
+}
+
+func (X *SimpleMatrix) ReduceWindow (
+   m, n, h, w int, f func (float64, float64) float64, init float64,
+) float64 {
+   endM := m + h
+   if endM > X.M {
+      endM = X.M
+   }
+   if m < 0 {
+      m = 0
+   }
+   endN := n + w
+   if endN > X.N {
+      endN = X.N
+   }
+   if m < 0 {
+      m = 0
+   }
+   r := init
+   for i := endM - 1; i >= m; i-- {
+      for j := endN - 1; j >= n; j-- {
+         r = f(r, X.Data[i][j])
+      }
+   }
+   return r
 }
