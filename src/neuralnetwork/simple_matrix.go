@@ -41,6 +41,15 @@ func (X *SimpleMatrix) Fill (x float64) *SimpleMatrix {
    return X
 }
 
+func (X *SimpleMatrix) FillElt (x []float64) *SimpleMatrix {
+   for i := X.M - 1; i >= 0; i-- {
+      for j := X.N - 1; j >= 0; j-- {
+         X.Data[i][j] = x[i * X.N + j]
+      }
+   }
+   return X
+}
+
 func (X *SimpleMatrix) FillRandom (a, b float64) *SimpleMatrix {
    for i := X.M - 1; i >= 0; i-- {
       for j := X.N - 1; j >= 0; j-- {
@@ -106,6 +115,46 @@ func (X *SimpleMatrix) Reshape (m, n int) *SimpleMatrix {
    return R
 }
 
+func (X *SimpleMatrix) ConnectRight (Y *SimpleMatrix) *SimpleMatrix {
+   if X.M != Y.M {
+      return nil
+   }
+   R := NewSimpleMatrix(X.M, X.N + Y.N)
+   R.FillWindow(0, 0, X)
+   R.FillWindow(0, X.N, Y)
+   return R
+}
+
+func (X *SimpleMatrix) ConnectLeft (Y *SimpleMatrix) *SimpleMatrix {
+   if X.M != Y.M {
+      return nil
+   }
+   R := NewSimpleMatrix(X.M, X.N + Y.N)
+   R.FillWindow(0, 0, Y)
+   R.FillWindow(0, Y.N, X)
+   return R
+}
+
+func (X *SimpleMatrix) ConnectBottom (Y *SimpleMatrix) *SimpleMatrix {
+   if X.N != Y.N {
+      return nil
+   }
+   R := NewSimpleMatrix(X.M + Y.M, X.N)
+   R.FillWindow(0, 0, X)
+   R.FillWindow(X.M, 0, Y)
+   return R
+}
+
+func (X *SimpleMatrix) ConnectTop (Y *SimpleMatrix) *SimpleMatrix {
+   if X.N != Y.N {
+      return nil
+   }
+   R := NewSimpleMatrix(X.M + Y.M, X.N)
+   R.FillWindow(0, 0, Y)
+   R.FillWindow(Y.M, 0, X)
+   return R
+}
+
 func (X *SimpleMatrix) Softmax () *SimpleMatrix {
    R      := NewSimpleMatrix(X.M, X.N)
    maxval := math.Inf(-1)
@@ -128,6 +177,37 @@ func (X *SimpleMatrix) Softmax () *SimpleMatrix {
    for i := X.M - 1; i >= 0; i-- {
       for j := X.N - 1; j >= 0; j-- {
          R.Data[i][j] /= scale
+      }
+   }
+   return R
+}
+
+func (X *SimpleMatrix) Convolute (Kernel *SimpleMatrix) *SimpleMatrix {
+   R := NewSimpleMatrix(X.M, X.N)
+   // XXX Kernel P * Q, P, Q = 0 (mod 2) issue
+   m_mid_offset := (Kernel.M - 1) / 2
+   n_mid_offset := (Kernel.N - 1) / 2
+   for i := X.M - 1; i >= 0; i-- {
+      for j := X.N - 1; j >= 0; j-- {
+         R.Data[i][j] = X.Window(i - m_mid_offset, j - n_mid_offset, Kernel.M, Kernel.N).EltMul(Kernel).EltSum()
+      }
+   }
+   return R
+}
+
+func (X *SimpleMatrix) Pool (stride_m, stride_n int, f func(float64, float64) float64, init float64) *SimpleMatrix {
+   newM := X.M / stride_m
+   if X.M % stride_m > 0 {
+      newM ++
+   }
+   newN := X.N / stride_n
+   if X.N % stride_n > 0 {
+      newN ++
+   }
+   R := NewSimpleMatrix(newM, newN)
+   for i := newM - 1; i >= 0; i-- {
+      for j := newN - 1; j >= 0; j-- {
+         R.Data[i][j] = X.Window(i * stride_m, j * stride_n, stride_m, stride_n).Reduce(f, init)
       }
    }
    return R
