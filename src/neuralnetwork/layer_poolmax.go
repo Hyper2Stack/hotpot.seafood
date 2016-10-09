@@ -24,6 +24,10 @@ func NewLayerPoolMax (input_m, input_n, item_n, item_m, pool_m, pool_n int) *Lay
    return c
 }
 
+func (c *LayerPoolMax) LastContribution () *SimpleMatrix {
+   return c.lastContribution
+}
+
 func (c *LayerPoolMax) OutputDim () (int, int) {
    m := c.M * c.ItemM
    n := c.N * c.ItemN
@@ -114,7 +118,7 @@ func __layer_pool_batch_maxbackward__(
                input_j := j * item_n + q * pool_n
                pool_contrib := contrib.Window(input_i, input_j, pool_m, pool_n)
                pool_contrib_sum := pool_contrib.EltSum()
-               if pool_contrib_sum <= 1 {
+               if pool_contrib_sum < 1 {
                   pool_contrib_sum = 1
                }
                pool_contrib = pool_contrib.Scale(grad.Data[i * pool_m + p][j * pool_n + q] / pool_contrib_sum)

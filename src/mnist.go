@@ -66,9 +66,6 @@ func __round__ (x float64) float64 {
    return 0.0
 }
 
-// XXX There are some bugs in the pool max and convolution
-//     no time to fix yet
-
 func mnist (dataset *MNISTDataset) {
    nn.RandomSeed()
    n := nn.NewNeuralChain()
@@ -77,33 +74,33 @@ func mnist (dataset *MNISTDataset) {
       /* 1*1 image */ 1, 1, /* 12 filters */ 12,
       /* 28*28 pixels */ 28, 28,
       /* 5*5 kernel */ 5, 5,
-      /* decay */ 0.01))
-   n.AddLayer(nn.NewLayerActivation(1* 28, 12 * 28, "relu"))
+      /* decay */ 0.001))
+   n.AddLayer(nn.NewLayerActivation(1* 28, 12 * 28, "tanh"))
    n.AddLayer(nn.NewLayerPoolMax(1, 12, 28, 28, 2, 2))
    n.AddLayer(nn.NewLayerConvolution(
       /* 1*12 image */ 1, 12, /* 12*16 filters */ 16,
       /* 14*14 pixels */ 14, 14,
       /* 5*5 kernel */ 5, 5,
-      /* decay */ 0.01))
-   n.AddLayer(nn.NewLayerActivation(1 * 14, 16 * 14, "relu"))
+      /* decay */ 0.001))
+   n.AddLayer(nn.NewLayerActivation(1 * 14, 16 * 14, "tanh"))
    n.AddLayer(nn.NewLayerFlatten(1 * 14, 16 * 14))
    n.AddLayer(nn.NewLayerLinear(1, 16 * 14 * 14, 10, 0.5, 0, true))
    n.AddLayer(nn.NewLayerLogRegression(1, 10))
 
    error := 0
-   for i := 1; i <= 1000; i++ {
+   for i := 1; i <= 10000; i++ {
       k := rand.Intn(600)
       image := nn.NewSimpleMatrix(28, 28).FillElt(dataset.LearnSet[k])
       label := LabelEncodeVector(dataset.LearnLab[k])
       predict := n.Predict(image)
       n.Learn(predict, label)
-      n.Update(0.3)
+      n.Update(0.1)
 
       if !LabelEqual(predict, label) {
          error ++
       }
-      if i % 100 == 0 {
-         fmt.Printf("error: %.2f%%\n", float64(error))
+      if i % 1000 == 0 {
+         fmt.Printf("error: %.2f%%\n", float64(error) / 1000.0 * 100.0)
          error = 0
          fmt.Println("Image", k, "->", dataset.LearnLab[k], label.Data[0], "  [A]", LabelDecode(predict), predict.Data[0])
       }
@@ -113,7 +110,7 @@ func mnist (dataset *MNISTDataset) {
    for i := 1; i <= 100; i++ {
       k := i - 1
       image := nn.NewSimpleMatrix(28, 28).FillElt(dataset.TestSet[k])
-      label := LabelEncodeVector(dataset.LearnLab[k])
+      label := LabelEncodeVector(dataset.TestLab[k])
       predict := n.Predict(image)
       if !LabelEqual(predict, label) {
          error ++

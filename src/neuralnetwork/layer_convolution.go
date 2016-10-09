@@ -41,110 +41,135 @@ func (c *LayerConvolution) InputDim () (int, int) {
    return c.InputM * c.ItemM, c.M * c.ItemN
 }
 
-func __layer_convolution_Badd__(a float64) func (float64) float64 {
-   return func (x float64) float64 {
-      return x + a
+func __unused_lconv_i_conv__ (X, Kernel *SimpleMatrix) *SimpleMatrix {
+   R := NewSimpleMatrix(X.M - Kernel.M + 1, X.N - Kernel.N + 1)
+   // Kernel = Kernel.Flip180()
+   m := Kernel.M - 1
+   n := Kernel.N - 1
+   K := NewSimpleMatrix(Kernel.M, Kernel.N)
+   for i := m; i >= 0; i-- {
+      for j := n; j >= 0; j-- {
+         K.Data[i][j] = Kernel.Data[m - i][n - j]
+      }
    }
+   for i := X.M - Kernel.M; i >= 0; i-- {
+      for j := X.N - Kernel.N; j >= 0; j-- {
+         R.Data[i][j] = X.Window(i, j, Kernel.M, Kernel.N).EltMul(Kernel).EltSum()
+      }
+   }
+   return R
 }
-func __layer_convolution_batch_conv__(
-   out_m, out_n int,
-   input *SimpleMatrix, item_m, item_n int,
-   kernel *SimpleMatrix, kernel_m, kernel_n int,
+func __lconv_matrix_conv__(
+   inputs *SimpleMatrix, input_m, input_n, item_m, item_n int,
+   kernels *SimpleMatrix, output_n, kernel_m, kernel_n int,
    b *SimpleMatrix,
 ) *SimpleMatrix {
-   R := NewSimpleMatrix(out_m, out_n)
-   in_m := input.M / item_m
-   in_n := input.N / item_n
-   kr_n := kernel.N / kernel_n
-   for i := in_m - 1; i >= 0; i-- {
-      for k := kr_n - 1; k >= 0; k-- {
-         conv := NewSimpleMatrix(item_m, item_n)
-         for j := in_n - 1; j >= 0; j-- {
-            conv = conv.Add(
-               input.Window(
-                  i * item_m, j * item_n, item_m, item_n,
-               ).Convolute(
-                  kernel.Window(
-                     j * kernel_m, k * kernel_n, kernel_m, kernel_n),
-               ),
-               1, 1,
-            )
+   R := NewSimpleMatrix(input_m * item_m, output_n * item_n)
+   fil_mid_h := kernel_m / 2
+   fil_mid_w := kernel_n / 2
+   for i := input_m - 1; i >= 0; i-- {
+      for k := output_n - 1; k >= 0; k-- {
+         for y := item_m - 1; y >= 0; y-- {
+            y_off_min := -y
+            if y_off_min < -fil_mid_h { y_off_min = -fil_mid_h }
+            y_off_max := item_m-y
+            if y_off_max > fil_mid_h+1 { y_off_max = fil_mid_h+1 }
+            for x := item_n - 1; x >= 0; x-- {
+               val := 0.0
+               x_off_min:= -x
+               if x_off_min < -fil_mid_w { x_off_min = -fil_mid_w }
+               x_off_max:= item_n-x
+               if x_off_max > fil_mid_w+1 { x_off_max = fil_mid_w+1 }
+               for y_off := y_off_min; y_off < y_off_max; y_off++ {
+                  for x_off := x_off_min; x_off < x_off_max; x_off++ {
+                     item_y := y + y_off
+                     item_x := x + x_off
+                     k_y := fil_mid_h + y_off
+                     k_x := fil_mid_w + x_off
+                     for j := input_n - 1; j >= 0; j-- {
+                        val += inputs.Data[i * item_m + item_y][j * item_n + item_x] * kernels.Data[j * kernel_m + k_y][k * kernel_n + k_x]
+                     }
+                  }
+               }
+               R.Data[i * item_m + y][k * item_n + x] = val
+            }
          }
-         // XW + b
-         R = R.FillWindow(
-            i * item_m, k * item_n,
-            conv.Map(__layer_convolution_Badd__(b.Data[i][k])))
       }
    }
    return R
 }
 func (c *LayerConvolution) ForwardProp (input *SimpleMatrix) *SimpleMatrix {
    c.lastInput = input.Clone()
-   c.lastOutput = __layer_convolution_batch_conv__(
-      c.InputM * c.ItemM, c.N * c.ItemN,
-      input, c.ItemM, c.ItemN, c.W, c.KernelM, c.KernelN, c.B)
+   c.lastOutput = __lconv_matrix_conv__(
+      input, c.InputM, c.M, c.ItemM, c.ItemN,
+      c.W, c.N, c.KernelM, c.KernelN, c.B,
+   )
    return c.lastOutput.Clone()
 }
 
-func __layer_convolution_sum__(x, y float64) float64 {
-   return x + y
+
+func __unused_lconv_b_conv__ (X, Kernel *SimpleMatrix) *SimpleMatrix {
+   R := NewSimpleMatrix(X.M + Kernel.M - 1, X.N + Kernel.N - 1)
+   km := Kernel.M - 1
+   kn := Kernel.N - 1
+   for i := X.M - 1; i >= -km; i-- {
+      for j := X.N - 1; j >= -kn; j-- {
+         R.Data[i + km][j + kn] = X.Window(i, j, km + 1, kn + 1).EltMul(Kernel).EltSum()
+      }
+   }
+   return R
 }
-func __layer_convolution_batch_backward__(
-   out_m, out_n int, output_grad *SimpleMatrix,
-   last_input *SimpleMatrix, item_m, item_n int,
-   kernel *SimpleMatrix, kernel_m, kernel_n int,
+func __lconv_matrix_grad__ (
+   last_inputs *SimpleMatrix, input_m, input_n, item_m, item_n int,
+   kernels *SimpleMatrix, output_n, kernel_m, kernel_n int,
+   grad *SimpleMatrix,
 ) (*SimpleMatrix, *SimpleMatrix) {
-   grad := NewSimpleMatrix(last_input.M, last_input.N)
-   dW := NewSimpleMatrix(kernel.M, kernel.N)
-   item_mask := NewSimpleMatrix(item_m, item_n)
-   in_m := last_input.M / item_m
-   in_n := last_input.N / item_n
-   kr_n := kernel.N / kernel_n
-   y_mid_offset := (kernel_m - 1) / 2
-   x_mid_offset := (kernel_n - 1) / 2
-   for i := in_m - 1; i >= 0; i-- {
-      for k := kr_n - 1; k >= 0; k-- {
+   dX := NewSimpleMatrix(last_inputs.M, last_inputs.N)
+   dW := NewSimpleMatrix(kernels.M, kernels.N)
+   fil_mid_h := kernel_m / 2
+   fil_mid_w := kernel_n / 2
+   for i := input_m - 1; i >= 0; i-- {
+      for k := output_n - 1; k >= 0; k-- {
          for y := item_m - 1; y >= 0; y-- {
+            y_off_min:= -y
+            if y_off_min < -fil_mid_h { y_off_min = -fil_mid_h }
+            y_off_max:= item_m-y
+            if y_off_max > fil_mid_h+1 { y_off_max = fil_mid_h+1 }
             for x := item_n - 1; x >= 0; x-- {
-               scale := output_grad.Data[i * item_m + y][k * item_n + x]
-               for j := in_n -1; j >= 0; j-- {
-                  item_y := y - y_mid_offset
-                  item_x := x - x_mid_offset
-                  j_km := j * kernel_m
-                  k_kn := k * kernel_n
-                  i_im := i * item_m
-                  j_in := j * item_n
-                  item_mask.FillWindow(
-                     item_y, item_x,
-                     kernel.Window(j_km, k_kn, kernel_m, kernel_n).Scale(scale),
-                  )
-                  grad.FillWindowMap(
-                     i_im + item_y, j_in + item_x,
-                     item_mask.Window(item_y, item_x, kernel_m, kernel_n),
-                     __layer_convolution_sum__,
-                  )
-                  dW.FillWindowMap(
-                     j_km, k_kn,
-                     last_input.Window(
-                        i_im, j_in, item_m, item_n,
-                     ).Window(
-                        item_y, item_x, kernel_m, kernel_n,
-                     ).Scale(scale),
-                     __layer_convolution_sum__,
-                  )
+               gradval := grad.Data[i * item_m + y][k * item_n + x]
+               x_off_min:= -x
+               if x_off_min < -fil_mid_w { x_off_min = -fil_mid_w }
+               x_off_max:= item_n-x
+               if x_off_max > fil_mid_w+1 { x_off_max = fil_mid_w+1 }
+               for y_off := y_off_min; y_off < y_off_max; y_off++ {
+                  for x_off := x_off_min; x_off < x_off_max; x_off++ {
+                     item_y := y + y_off
+                     item_x := x + x_off
+                     k_y := fil_mid_h + y_off
+                     k_x := fil_mid_w + x_off
+                     for j := input_n - 1; j >= 0; j-- {
+                        iIm := i * item_m
+                        jIn := j * item_n
+                        jKm := j * kernel_m
+                        kKn := k * kernel_n
+                        dX.Data[iIm + item_y][jIn + item_x] += kernels.Data[jKm + k_y][kKn + k_x] * gradval
+                        dW.Data[jKm + k_y][kKn + k_x] += last_inputs.Data[iIm + item_y][jIn + item_x] * gradval
+                     }
+                  }
                }
             }
          }
       }
    }
-   dW = dW.Scale(1.0 / float64(in_m))
-   return grad, dW
+   dW = dW.Scale(1.0/float64(input_m))
+   return dX, dW
 }
 func (c *LayerConvolution) BackwardProp (output_grad *SimpleMatrix) *SimpleMatrix {
    item_m := c.ItemM
    item_n := c.ItemN
-   c.lastGrad, c.DeltaWb[0] = __layer_convolution_batch_backward__(
-      c.M * item_m, c.N * item_n, output_grad, c.lastInput, item_m, item_n, c.W, c.KernelM, c.KernelN)
+   c.lastGrad, c.DeltaWb[0] = __lconv_matrix_grad__(
+      c.lastInput, c.InputM, c.M, c.ItemM, c.ItemN,
+      c.W, c.N, c.KernelM, c.KernelN, output_grad)
    db := c.DeltaWb[1]
    for i := db.M - 1; i >= 0; i-- {
       for j := db.N - 1; j >= 0; j-- {
