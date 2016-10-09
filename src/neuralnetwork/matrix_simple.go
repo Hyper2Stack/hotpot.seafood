@@ -1,6 +1,7 @@
 package neuralnetwork
 
 import (
+   "fmt"
    "math"
    "math/rand"
 )
@@ -20,6 +21,14 @@ func NewSimpleMatrix (m, n int) *SimpleMatrix {
       mat.Data[i] = make([]float64, n)
    }
    return mat
+}
+
+func (X *SimpleMatrix) Dump () {
+   fmt.Println("-- matrix ---------------------")
+   for _, row := range X.Data {
+      fmt.Println(row)
+   }
+   fmt.Println("===============================")
 }
 
 func (X *SimpleMatrix) T() *SimpleMatrix {
@@ -86,6 +95,31 @@ func (X *SimpleMatrix) FillWindow (y, x int, Y *SimpleMatrix) *SimpleMatrix {
             continue
          }
          X.Data[i][j] = Y.Data[i - y][j - x]
+      }
+   }
+   return X
+}
+
+func (X *SimpleMatrix) FillWindowMap (
+   y, x int, Y *SimpleMatrix, f func (float64, float64) float64,
+) *SimpleMatrix {
+   m := y + Y.M
+   if m > X.M {
+      m = X.M
+   }
+   n := x + Y.N
+   if n > X.N {
+      n = X.N
+   }
+   for i := m - 1; i >= y; i-- {
+      if i < 0 {
+         continue
+      }
+      for j := n - 1; j >= x; j-- {
+         if j < 0 {
+            continue
+         }
+         X.Data[i][j] = f(X.Data[i][j], Y.Data[i - y][j - x])
       }
    }
    return X

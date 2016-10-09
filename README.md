@@ -1,6 +1,12 @@
 # Hotpot Seafood
 Hotpot::Seafood - data world opening
 
+> Example:<br/>
+> shell with `cd` command to repository root directory<br/>
+> Basic Neural Network / XOR: `GOPATH=$(pwd) go run src/xor.go`<br/>
+> Recurrent Neural Network / ADD: `GOPATH=$(pwd) go run src/add.go`<br/>
+> Convolutional Neural Network / MNIST: `GOPATH=$(pwd) go run src/mnist.go`<br/>
+
 ```golang
 import nn "neuralnetwork"
 
