@@ -16,6 +16,8 @@ type MNISTDataset struct {
    TestLab  []float64   `json:"testlabel"`
 }
 
+// ref: http://yann.lecun.com/exdb/mnist/
+// 0.01 means sample 1% of MNIST dataset (train:600, test:100)
 func MNISTDataLoad () *MNISTDataset {
    fmt.Println("Loading MNIST dataset ...")
    raw, err := ioutil.ReadFile("src/mnist-0.01.json")
@@ -77,11 +79,7 @@ func mnist (dataset *MNISTDataset) {
       /* decay */ 0.001))
    n.AddLayer(nn.NewLayerActivation(1* 28, 12 * 28, "tanh"))
    n.AddLayer(nn.NewLayerPoolMax(1, 12, 28, 28, 2, 2))
-   n.AddLayer(nn.NewLayerConvolution(
-      /* 1*12 image */ 1, 12, /* 12*16 filters */ 16,
-      /* 14*14 pixels */ 14, 14,
-      /* 5*5 kernel */ 5, 5,
-      /* decay */ 0.001))
+   n.AddLayer(nn.NewLayerConvolution(1, 12, 16, 14, 14, 5, 5, 0.001))
    n.AddLayer(nn.NewLayerActivation(1 * 14, 16 * 14, "tanh"))
    n.AddLayer(nn.NewLayerFlatten(1 * 14, 16 * 14))
    n.AddLayer(nn.NewLayerLinear(1, 16 * 14 * 14, 10, 0.5, 0, true))
