@@ -49,7 +49,7 @@ type RecordOutputDelayUpdateOfLayerRecordShadow struct {
 }
 
 func (a *RecordOutputDelayUpdateOfLayerRecordShadow) DeltaUpdate (c *LayerRecordShadow) {
-   if a.Delta == ([]*SimpleMatrix)(nil) {
+   if a.Delta == nil {
       a.Delta = c.Delta()
    } else {
       delta := c.Delta()
@@ -70,7 +70,7 @@ type RecordInputDelayUpdateOfLayerRecordShadow struct{
 }
 
 func (a *RecordInputDelayUpdateOfLayerRecordShadow) DeltaUpdate (c *LayerRecordShadow) {
-   if a.Delta == ([]*SimpleMatrix)(nil) {
+   if a.Delta == nil {
       a.Delta = c.Delta()
    } else {
       delta := c.Delta()
